@@ -1,10 +1,13 @@
 import sys
 from collections import Counter
-import pysrt
+#import pysrt #GPL
+import srt #MIT license
 import nltk
 #import nltk.data
+from nltk import WordNetLemmatizer, pos_tag
+from nltk.stem import SnowballStemmer, PorterStemmer 
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize, regexp_tokenize
 
 import log
 
@@ -13,50 +16,55 @@ if __name__ == '__main__':
 
     nltk.download('punkt')
     nltk.download('stopwords')
+    nltk.download('wordnet')
+    nltk.download('averaged_perceptron_tagger')
 
     stop_words = set(stopwords.words("english"))  # load stopwords
 
     #print(stop_words)
-    tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    #tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    lemma = WordNetLemmatizer()
+    porter = PorterStemmer()
+    snowball = SnowballStemmer("english")
 
-    sub = pysrt.open("Corpse.Bride.2005.srt")
+
+    subs = None
     raw = ""
-    for s in sub:
-        raw += s.text + '\n'
+    #subs = pysrt.open("Corpse.Bride.2005.srt")
+    with open("Corpse.Bride.2005.srt", "r") as f:
+        subs = srt.parse(f.read())
+        for s in subs:
+            #raw += s.text + '\n'
+            raw += s.content + '\n'
 
-
+    all_word_tokens = []
     sentences = sent_tokenize(raw)
     for sentence in sentences:
-        #print(text)
-        #tokens = tokenizer.tokenize(text)
-        #print(tokens)
-        #tokens = sent_tokenize(text)
         print(sentence)
+
         word_tokens = word_tokenize(sentence) 
+        #word_tokens = regexp_tokenize(sentence, "[\w']+") 
+
         print(word_tokens)
-        filtered = [w for w in word_tokens if not w.lower() in stop_words and w.isalpha()] 
-        print(filtered)
-        #for token in tokens:
-        #    #print(token)
-        #    word_tokens = word_tokenize(token) 
-        #    print(word_tokens)
-        #    filtered = [w for w in word_tokens if not w in stop_words] 
-        #    print(filtered)
+        #filtered = [w for w in word_tokens if not w.lower() in stop_words and w.isalpha()] 
+        #print(filtered)
+        removed_stopwords = [w for w in word_tokens if not w.lower() in stop_words] 
+        tokens = [lemma.lemmatize(word, pos = "v") for word in removed_stopwords]
+        tokens = [lemma.lemmatize(word, pos = "n") for word in tokens]
+        print(tokens)
+
+        print(pos_tag(word_tokens))
+        print(pos_tag(removed_stopwords))
+        print(pos_tag(tokens))
+        
+        #tokens = [snowball.stem(word) for word in removed_stopwords]
+        #tokens = [porter.stem(word) for word in removed_stopwords]
+        #print(tokens)
+
+
+        #all_word_tokens += filtered
         print()
 
-    #tokens = word_tokenize(raw)
-    #print(tokens)
-    #word_count = Counter(tokens)
-    #print(word_count)
+    #word_count = Counter(all_word_tokens)
     #print(word_count.most_common(10))
-
-   
-
-    #for s in sub:
-    #    print("TESTTEST:", s)
-    #log.debug(stop_words)
-
-    #word_tokens = word_tokenize(sub)  
-    #filtered_sentence = [w for w in word_tokens if not w in stop_words] 
-    #log.debug(filtered_sentence)
 
