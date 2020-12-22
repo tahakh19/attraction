@@ -32,7 +32,7 @@ add_loglevel(logging.CRITICAL - 2, "TEST")
 
 debug = logger.debug
 info = logger.info
-warn = logger.warn
+warning = logger.warning
 error = logger.error
 exception = logger.exception
 fatal = logger.fatal

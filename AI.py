@@ -1,9 +1,9 @@
 import sys
 from collections import Counter, OrderedDict
 import re
-from xml.etree import ElementTree as ET
+#from xml.etree import ElementTree as ET
 from xml.dom import minidom
-import dicttoxml
+#import dicttoxml
 #import pysrt #GPL
 import srt #MIT license
 import nltk
@@ -18,7 +18,7 @@ from spacy.symbols import NOUN, VERB, ADJ, ADV
 
 import log
 
-dicttoxml.set_debug(False)
+#dicttoxml.set_debug(False)
 
 USE_SPACY = True
 
@@ -26,6 +26,14 @@ USE_SPACY = True
 TAG_RE = re.compile(r'<[^>]+>')
 def remove_tags(text):
         return TAG_RE.sub('', text)
+
+def escape_xml(s):
+    s = s.replace('&', '&amp;')
+    s = s.replace('"', '&quot;')
+    s = s.replace('\'', '&apos;')
+    s = s.replace('<', '&lt;')
+    s = s.replace('>', '&gt;')
+    return s
 
 if __name__ == '__main__':
     log.set_loglevel(6)
@@ -67,11 +75,11 @@ if __name__ == '__main__':
                 name, length, d = symbols.get(token.pos, ("", 0, {}))
                 #print(d, token.pos, symbols)
                 if name:
-                    info = d.setdefault(token.lemma_, {'counter':0, 'example':[] })
+                    info = d.setdefault(token.lemma_, {'counter':0, 'example':set() })
                     #print(info)
 
                     info['counter'] += 1
-                    info['example'].append(sent.text.strip())
+                    info['example'].add(sent.text.strip())
                     #print(token.lemma_, info['counter'], info['example'])
 
                     symbols[token.pos] = (name, length+1, d)
@@ -86,11 +94,49 @@ if __name__ == '__main__':
                 #print(token.lemma_, token.text, "(", sent.text.strip(), ")")
 
         for symbol, (name, length, d) in symbols.items():
-            x = dicttoxml.dicttoxml(OrderedDict(sorted(d.items(), reverse=True, key = lambda k:(k[1]['counter'], k[0] ))), 
-                custom_root=name, attr_type=False)
-            y = minidom.parseString(x).firstChild
-            y.setAttribute('length', str(length))
-            xml.appendChild(y)
+
+            s = sorted(d.items(), reverse=True, key = lambda k:(k[1]['counter'], k[0] ))
+
+            symbol_xml = root.createElement(escape_xml(name)) 
+            symbol_xml.setAttribute('length', str(length))
+            for k, v in s:
+                if not escape_xml(k).isalnum():
+                    log.warning("key "+ escape_xml(k) + " is not valid name")
+                    continue
+
+                word_xml = root.createElement(escape_xml(k)) 
+                count = v['counter']
+                word_xml.setAttribute('count', str(count))
+                examples = v['example']
+                for example in examples:
+                    item = root.createElement('item')
+                    text = root.createTextNode(escape_xml(example))
+                    item.appendChild(text)
+
+                    word_xml.appendChild(item)
+
+                symbol_xml.appendChild(word_xml)
+            
+            xml.appendChild(symbol_xml)
+
+
+
+            #odict = OrderedDict(s)
+
+
+            #x = dicttoxml.dicttoxml(odict, custom_root=name, attr_type=False)
+
+            #y = minidom.parseString(x).firstChild
+            #y.setAttribute('length', str(length))
+
+            #for child in y.childNodes:
+            #    print(len(child.childNodes))
+            #    examples = child.getElementsByTagName('example')
+            #    print(examples.childNodes)
+            #    child.setAttribute('count', counter.nodeValue)
+            #    #child.removeChild(counter)
+            #    #print("remove")
+
 
         with  open("padington.xml","w") as f:
             xml.writexml(f)
