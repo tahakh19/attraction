@@ -1,7 +1,7 @@
 import sys
 from collections import Counter, OrderedDict
 import re
-#from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET
 from xml.dom import minidom
 #import dicttoxml
 #import pysrt #GPL
@@ -15,8 +15,11 @@ from nltk.tokenize import word_tokenize, sent_tokenize, regexp_tokenize
 from textblob import TextBlob
 import spacy #MIT license support farsi
 from spacy.symbols import NOUN, VERB, ADJ, ADV
+from g2p_en import G2p
+
 
 import log
+from cmudict import PhonemeSet
 
 #dicttoxml.set_debug(False)
 
@@ -37,10 +40,37 @@ def escape_xml(s):
 
 if __name__ == '__main__':
     log.set_loglevel(6)
- 
+    
+    g2p = G2p()
+
     root = minidom.Document() 
-    xml = root.createElement('Padington')  
-    root.appendChild(xml) 
+
+    xml = root.createElement('result')
+    root.appendChild(xml)
+
+    #cmudict_help = minidom.parseString("<help>"+PhonemeSet+"</help>").firstChild
+    cmudict_help = root.createElement('help')
+    link = root.createElement('a')
+    link.setAttribute('href', "http://www.speech.cs.cmu.edu/cgi-bin/cmudict" + '/')
+    cmudict_help.appendChild(link)
+
+    for line in PhonemeSet.split("\n"):
+        pre = root.createElement("p")
+        text = root.createTextNode(line)
+
+        pre.appendChild(text)
+
+
+        #cmudict_data = root.createCDATASection(line)
+        cmudict_help.appendChild(pre)
+
+    #help_text = root.createTextNode(PhonemeSet)
+    #cmudict_help.appendChild(help_text)
+
+    xml.appendChild(cmudict_help)
+
+    padington_xml = root.createElement('Padington')  
+    xml.appendChild(padington_xml) 
 
     #verbsChild = root.createElement('verbs') 
     #nounsChild = root.createElement('nouns') 
@@ -100,24 +130,27 @@ if __name__ == '__main__':
             symbol_xml = root.createElement(escape_xml(name)) 
             symbol_xml.setAttribute('length', str(length))
             for k, v in s:
-                if not escape_xml(k).isalnum():
-                    log.warning("key "+ escape_xml(k) + " is not valid name")
+                escape_k = escape_xml(k)
+                if not escape_k.isalnum():
+                    log.warning("key "+ escape_k + " is not valid name")
                     continue
 
-                word_xml = root.createElement(escape_xml(k)) 
+                word_xml = root.createElement(escape_k) 
                 count = v['counter']
+                word_xml.setAttribute('phoneme', ".".join(g2p(escape_k)))
                 word_xml.setAttribute('count', str(count))
                 examples = v['example']
                 for example in examples:
+                    escape_example = escape_xml(example)
                     item = root.createElement('item')
-                    text = root.createTextNode(escape_xml(example))
+                    text = root.createTextNode(escape_example)
                     item.appendChild(text)
 
                     word_xml.appendChild(item)
 
                 symbol_xml.appendChild(word_xml)
             
-            xml.appendChild(symbol_xml)
+            padington_xml.appendChild(symbol_xml)
 
 
 
