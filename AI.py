@@ -51,7 +51,10 @@ if __name__ == '__main__':
     #cmudict_help = minidom.parseString("<help>"+PhonemeSet+"</help>").firstChild
     cmudict_help = root.createElement('help')
     link = root.createElement('a')
-    link.setAttribute('href', "http://www.speech.cs.cmu.edu/cgi-bin/cmudict" + '/')
+    link.setAttribute('href', "http://www.speech.cs.cmu.edu/cgi-bin/cmudict")
+    cmudict_help.appendChild(link)
+    link = root.createElement('a')
+    link.setAttribute('href', "https://en.wikipedia.org/wiki/ARPABET")
     cmudict_help.appendChild(link)
 
     for line in PhonemeSet.split("\n"):
